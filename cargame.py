@@ -19,7 +19,7 @@ GREEN = (34, 139, 34)
 BROWN = (139, 69, 19)
 
 # Yol boyutları
-road_width = 300
+road_width = 500  # Yol genişletildi
 road_x = screen_width // 2 - road_width // 2
 
 # Araba boyutları
@@ -38,9 +38,24 @@ tree_leaves_radius = 30
 
 def draw_road(road_lines):
     pygame.draw.rect(screen, GRAY, (road_x, 0, road_width, screen_height))
-    # Yol çizgileri
+    # Yol şeritleri (3 şerit, beyaz renk)
+    lane_width = road_width // 3
     for y in road_lines:
-        pygame.draw.rect(screen, WHITE, (screen_width//2 - 5, y, 10, 40))
+        pygame.draw.rect(screen, WHITE, (road_x + lane_width - 5, y, 10, 40))
+        pygame.draw.rect(screen, WHITE, (road_x + 2 * lane_width - 5, y, 10, 40))
+
+# Bariyer çizim fonksiyonu
+def draw_barriers():
+    barrier_width = 15
+    # Sol bariyer (tamamen ahşap görünüm)
+    pygame.draw.rect(screen, (139, 69, 19), (road_x - barrier_width, 0, barrier_width, screen_height))  # Ana ahşap renk
+    for y in range(0, screen_height, 60):
+        pygame.draw.line(screen, (160, 82, 45), (road_x - barrier_width, y), (road_x, y + 20), 2)  # Ahşap doku çizgileri
+
+    # Sağ bariyer (tamamen ahşap görünüm)
+    pygame.draw.rect(screen, (139, 69, 19), (road_x + road_width, 0, barrier_width, screen_height))  # Ana ahşap renk
+    for y in range(0, screen_height, 60):
+        pygame.draw.line(screen, (160, 82, 45), (road_x + road_width, y), (road_x + road_width + barrier_width, y + 20), 2)  # Ahşap doku çizgileri
 
 # Araba sınıfı
 class Car:
@@ -50,18 +65,38 @@ class Car:
         self.speed = 5
 
     def draw(self):
-        # Araba gövdesi
-        pygame.draw.rect(screen, BLUE, (self.x, self.y + 20, car_width, car_height - 20), border_radius=12)
+        # Gölge
+        pygame.draw.ellipse(screen, (60, 60, 60), (self.x + 5, self.y + car_height - 10, car_width - 10, 18))
+        # Gövde (ana renk)
+        pygame.draw.rect(screen, (0, 70, 200), (self.x, self.y + 20, car_width, car_height - 20), border_radius=16)
+        # Kaput
+        pygame.draw.rect(screen, (0, 90, 230), (self.x + 6, self.y + 20, car_width - 12, 30), border_radius=10)
         # Cam
-        pygame.draw.rect(screen, (180, 220, 255), (self.x + 8, self.y + 25, car_width - 16, 35), border_radius=8)
+        pygame.draw.rect(screen, (180, 220, 255), (self.x + 10, self.y + 30, car_width - 20, 38), border_radius=8)
+        # Arka cam
+        pygame.draw.rect(screen, (140, 180, 220), (self.x + 14, self.y + car_height - 45, car_width - 28, 22), border_radius=6)
+        # Kapı çizgileri
+        pygame.draw.line(screen, (100, 100, 100), (self.x + car_width//2, self.y + 50), (self.x + car_width//2, self.y + car_height - 20), 2)
+        # Kapı kolu
+        pygame.draw.rect(screen, (220, 220, 220), (self.x + car_width//2 - 12, self.y + 70, 24, 5), border_radius=2)
+        # Plaka
+        pygame.draw.rect(screen, (255, 255, 180), (self.x + car_width//2 - 15, self.y + car_height - 28, 30, 10), border_radius=2)
+        # Ön farlar
+        pygame.draw.ellipse(screen, (255, 255, 180), (self.x + 4, self.y + 18, 12, 10))
+        pygame.draw.ellipse(screen, (255, 255, 180), (self.x + car_width - 16, self.y + 18, 12, 10))
+        # Arka stoplar
+        pygame.draw.ellipse(screen, (255, 0, 0), (self.x + 4, self.y + car_height - 12, 12, 8))
+        pygame.draw.ellipse(screen, (255, 0, 0), (self.x + car_width - 16, self.y + car_height - 12, 12, 8))
         # Tekerlekler
-        pygame.draw.ellipse(screen, BLACK, (self.x + 5, self.y + car_height - 20, 15, 15))
-        pygame.draw.ellipse(screen, BLACK, (self.x + car_width - 20, self.y + car_height - 20, 15, 15))
-        pygame.draw.ellipse(screen, BLACK, (self.x + 5, self.y + 10, 15, 15))
-        pygame.draw.ellipse(screen, BLACK, (self.x + car_width - 20, self.y + 10, 15, 15))
-        # Farlar
-        pygame.draw.circle(screen, (255, 255, 100), (self.x + 10, self.y + 20), 6)
-        pygame.draw.circle(screen, (255, 255, 100), (self.x + car_width - 10, self.y + 20), 6)
+        pygame.draw.ellipse(screen, BLACK, (self.x + 2, self.y + 32, 15, 32))
+        pygame.draw.ellipse(screen, BLACK, (self.x + car_width - 17, self.y + 32, 15, 32))
+        pygame.draw.ellipse(screen, BLACK, (self.x + 2, self.y + car_height - 38, 15, 32))
+        pygame.draw.ellipse(screen, BLACK, (self.x + car_width - 17, self.y + car_height - 38, 15, 32))
+        # Jantlar
+        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + 6, self.y + 40, 7, 16))
+        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + car_width - 13, self.y + 40, 7, 16))
+        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + 6, self.y + car_height - 30, 7, 16))
+        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + car_width - 13, self.y + car_height - 30, 7, 16))
 
     def move_left(self):
         if self.x > road_x:
@@ -100,10 +135,10 @@ class EnemyCar:
         self.height = car_height
         self.x = random.randint(road_x + 10, road_x + road_width - self.width - 10)
         self.y = -self.height
-        self.speed = random.randint(6, 10)
+        self.speed = random.randint(1, 2)  # Çok yavaş
 
     def move(self):
-        self.y += self.speed
+        self.y += self.speed  # Yukarıdan aşağıya
 
     def draw(self):
         pygame.draw.rect(screen, (200, 0, 0), (self.x, self.y + 20, self.width, self.height - 20), border_radius=12)
@@ -112,6 +147,21 @@ class EnemyCar:
         pygame.draw.ellipse(screen, BLACK, (self.x + self.width - 20, self.y + self.height - 20, 15, 15))
         pygame.draw.ellipse(screen, BLACK, (self.x + 5, self.y + 10, 15, 15))
         pygame.draw.ellipse(screen, BLACK, (self.x + self.width - 20, self.y + 10, 15, 15))
+
+# Çukur engeli
+class Hole:
+    def __init__(self):
+        self.size = 40
+        self.x = random.randint(road_x + 20, road_x + road_width - self.size - 20)
+        self.y = -self.size
+        self.speed = 7
+
+    def move(self):
+        self.y += self.speed
+
+    def draw(self):
+        pygame.draw.ellipse(screen, (50, 50, 50), (self.x, self.y, self.size, self.size//2))
+        pygame.draw.ellipse(screen, (30, 30, 30), (self.x+8, self.y+8, self.size-16, self.size//2-10))
 
 # Can bonusu sınıfı
 class LifeBonus:
@@ -135,6 +185,7 @@ def game():
     while True:
         car = Car()
         cones = []
+        holes = []
         enemy_cars = []
         bonuses = []
         road_lines = [i for i in range(0, screen_height, 80)]
@@ -144,9 +195,12 @@ def game():
         cone_timer = 0
         enemy_timer = 0
         bonus_timer = 0
+        hole_timer = 0
         lives = 1
         cones_passed = 0
         bonus_pending = False
+        falling = False
+        fall_y = 0
 
         while running:
             for event in pygame.event.get():
@@ -154,12 +208,12 @@ def game():
                     pygame.quit()
                     return
 
-            # Tuşlara basılma durumunu kontrol et
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                car.move_left()
-            if keys[pygame.K_RIGHT]:
-                car.move_right()
+            if not falling:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_LEFT]:
+                    car.move_left()
+                if keys[pygame.K_RIGHT]:
+                    car.move_right()
 
             # Yol çizgilerini hareket ettir
             for i in range(len(road_lines)):
@@ -167,16 +221,21 @@ def game():
                 if road_lines[i] > screen_height:
                     road_lines[i] = road_lines[i] - screen_height - 40
 
-            # Yeni duba oluşturma
+            # Yeni duba veya çukur oluşturma
             cone_timer += 1
-            if cone_timer > 35:
-                cones.append(Cone())
+            if cone_timer > 50:  # Daha az sıklıkta engel
+                if random.random() < 0.7:
+                    cones.append(Cone())
+                else:
+                    holes.append(Hole())
                 cone_timer = 0
 
             # Yeni düşman araba oluşturma
             enemy_timer += 1
-            if enemy_timer > 60:
-                if random.random() < 0.5:
+            min_timer = max(50, 150 - score // 10 * 10)  # Daha az sıklıkta düşman araç
+            if enemy_timer > min_timer:
+                spawn_chance = min(0.2 + score / 300, 0.6)  # Daha düşük olasılık
+                if random.random() < spawn_chance:
                     enemy_cars.append(EnemyCar())
                 enemy_timer = 0
 
@@ -195,10 +254,16 @@ def game():
                     score += 2  # Her duba için 2 puan
                     cones_passed += 1
 
+            # Çukurları hareket ettir
+            for hole in holes[:]:
+                hole.move()
+                if hole.y > screen_height:
+                    holes.remove(hole)
+
             # Düşman arabaları hareket ettir
             for enemy in enemy_cars[:]:
                 enemy.move()
-                if enemy.y > screen_height:
+                if enemy.y + enemy.height < 0:
                     enemy_cars.remove(enemy)
 
             # Bonusları hareket ettir
@@ -209,11 +274,13 @@ def game():
 
             # Ekranı beyaz yap
             screen.fill(WHITE)
-            # Yolu çiz
+            # Yolu ve bariyerleri çiz
             draw_road(road_lines)
+            draw_barriers()
 
             # Arabayı çiz
-            car.draw()
+            if not falling:
+                car.draw()
 
             # Dubaları çiz ve çarpışma kontrolü
             for cone in cones:
@@ -221,7 +288,7 @@ def game():
                 # Çarpışma kontrolü
                 car_rect = pygame.Rect(car.x, car.y, car_width, car_height)
                 cone_rect = pygame.Rect(cone.x, cone.y, cone.width, cone.height)
-                if car_rect.colliderect(cone_rect):
+                if not falling and car_rect.colliderect(cone_rect):
                     if lives > 0:
                         lives -= 1
                         cones.remove(cone)
@@ -248,12 +315,56 @@ def game():
                                 running = False
                     break
 
+            # Çukurları çiz ve çarpışma kontrolü
+            for hole in holes:
+                hole.draw()
+                car_rect = pygame.Rect(car.x, car.y, car_width, car_height)
+                hole_rect = pygame.Rect(hole.x, hole.y, hole.size, hole.size//2)
+                if not falling and car_rect.colliderect(hole_rect):
+                    if lives > 0:
+                        lives -= 1
+                        falling = True
+                        fall_y = car.y
+                    else:
+                        falling = True
+                        fall_y = car.y
+
+            # Düşme animasyonu
+            if falling:
+                fall_y += 15
+                screen.blit(pygame.transform.scale(screen.subsurface(car.x, car.y, car_width, car_height), (car_width, car_height)), (car.x, fall_y))
+                if fall_y > screen_height:
+                    falling = False
+                    if lives >= 0:
+                        car.x = screen_width // 2 - car_width // 2
+                        car.y = screen_height - car_height - 10
+                    if lives < 0:
+                        font_over = pygame.font.SysFont("Arial", 80, bold=True)
+                        over_text = font_over.render("GAME OVER", True, RED)
+                        font_score = pygame.font.SysFont("Arial", 40, bold=True)
+                        score_text = font_score.render(f"Skorun: {score}", True, BLACK)
+                        font_restart = pygame.font.SysFont("Arial", 30)
+                        restart_text = font_restart.render("Yeniden başlatmak için bir tuşa bas!", True, BLACK)
+                        screen.blit(over_text, (screen_width//2 - over_text.get_width()//2, screen_height//2 - 120))
+                        screen.blit(score_text, (screen_width//2 - score_text.get_width()//2, screen_height//2 - 30))
+                        screen.blit(restart_text, (screen_width//2 - restart_text.get_width()//2, screen_height//2 + 40))
+                        pygame.display.update()
+                        waiting = True
+                        while waiting:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    return
+                                if event.type == pygame.KEYDOWN:
+                                    waiting = False
+                                    running = False
+
             # Düşman arabaları çiz ve çarpışma kontrolü
             for enemy in enemy_cars:
                 enemy.draw()
                 car_rect = pygame.Rect(car.x, car.y, car_width, car_height)
                 enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
-                if car_rect.colliderect(enemy_rect):
+                if not falling and car_rect.colliderect(enemy_rect):
                     if lives > 0:
                         lives -= 1
                         enemy_cars.remove(enemy)
@@ -284,7 +395,7 @@ def game():
                 bonus.draw()
                 car_rect = pygame.Rect(car.x, car.y, car_width, car_height)
                 bonus_rect = pygame.Rect(bonus.x, bonus.y, bonus.radius*2, bonus.radius*2)
-                if car_rect.colliderect(bonus_rect):
+                if not falling and car_rect.colliderect(bonus_rect):
                     lives += 1
                     bonuses.remove(bonus)
 
