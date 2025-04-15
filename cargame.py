@@ -69,6 +69,8 @@ class Car:
         self.x = screen_width // 2 - car_width // 2
         self.y = screen_height - car_height - 10
         self.speed = 5
+        self.normal_speed = 5
+        self.slow_speed = 1
 
     def draw(self):
         screen.blit(car_img, (self.x, self.y))
@@ -80,6 +82,12 @@ class Car:
     def move_right(self):
         if self.x < road_x + road_width - car_width:
             self.x += self.speed
+
+    def brake(self, braking):
+        if braking:
+            self.speed = self.slow_speed
+        else:
+            self.speed = self.normal_speed
 
 # Duba (engel) sınıfı
 class Cone:
@@ -185,6 +193,7 @@ def game():
 
             if not falling:
                 keys = pygame.key.get_pressed()
+                car.brake(keys[pygame.K_DOWN])
                 if keys[pygame.K_LEFT]:
                     car.move_left()
                 if keys[pygame.K_RIGHT]:
@@ -207,9 +216,9 @@ def game():
 
             # Yeni düşman araba oluşturma
             enemy_timer += 1
-            min_timer = max(50, 150 - score // 10 * 10)  # Daha az sıklıkta düşman araç
+            min_timer = max(40, 120 - score // 10 * 10)  # Bir tık daha sık
             if enemy_timer > min_timer:
-                spawn_chance = min(0.2 + score / 300, 0.6)  # Daha düşük olasılık
+                spawn_chance = min(0.3 + score / 200, 0.85)  # Bir tık daha fazla olasılık
                 if random.random() < spawn_chance:
                     enemy_cars.append(EnemyCar())
                 enemy_timer = 0
