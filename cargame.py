@@ -23,8 +23,11 @@ road_width = 500  # Yol genişletildi
 road_x = screen_width // 2 - road_width // 2
 
 # Araba boyutları
-car_width = 50
-car_height = 100
+car_width = 74  # Oyuncu aracı genişliği artırıldı
+car_height = 115  # Oyuncu aracı uzunluğu artırıldı
+
+enemy_car_width = 50  # Düşman aracı genişliği artırıldı
+enemy_car_height = 100  # Düşman aracı uzunluğu artırıldı
 
 # Duba boyutları
 cone_width = 30
@@ -35,6 +38,9 @@ cone_height = 50
 tree_trunk_width = 20
 tree_trunk_height = 40
 tree_leaves_radius = 30
+
+car_img = pygame.image.load('dodge.png')
+car_img = pygame.transform.scale(car_img, (car_width, car_height))
 
 def draw_road(road_lines):
     pygame.draw.rect(screen, GRAY, (road_x, 0, road_width, screen_height))
@@ -65,38 +71,7 @@ class Car:
         self.speed = 5
 
     def draw(self):
-        # Gölge
-        pygame.draw.ellipse(screen, (60, 60, 60), (self.x + 5, self.y + car_height - 10, car_width - 10, 18))
-        # Gövde (ana renk)
-        pygame.draw.rect(screen, (0, 70, 200), (self.x, self.y + 20, car_width, car_height - 20), border_radius=16)
-        # Kaput
-        pygame.draw.rect(screen, (0, 90, 230), (self.x + 6, self.y + 20, car_width - 12, 30), border_radius=10)
-        # Cam
-        pygame.draw.rect(screen, (180, 220, 255), (self.x + 10, self.y + 30, car_width - 20, 38), border_radius=8)
-        # Arka cam
-        pygame.draw.rect(screen, (140, 180, 220), (self.x + 14, self.y + car_height - 45, car_width - 28, 22), border_radius=6)
-        # Kapı çizgileri
-        pygame.draw.line(screen, (100, 100, 100), (self.x + car_width//2, self.y + 50), (self.x + car_width//2, self.y + car_height - 20), 2)
-        # Kapı kolu
-        pygame.draw.rect(screen, (220, 220, 220), (self.x + car_width//2 - 12, self.y + 70, 24, 5), border_radius=2)
-        # Plaka
-        pygame.draw.rect(screen, (255, 255, 180), (self.x + car_width//2 - 15, self.y + car_height - 28, 30, 10), border_radius=2)
-        # Ön farlar
-        pygame.draw.ellipse(screen, (255, 255, 180), (self.x + 4, self.y + 18, 12, 10))
-        pygame.draw.ellipse(screen, (255, 255, 180), (self.x + car_width - 16, self.y + 18, 12, 10))
-        # Arka stoplar
-        pygame.draw.ellipse(screen, (255, 0, 0), (self.x + 4, self.y + car_height - 12, 12, 8))
-        pygame.draw.ellipse(screen, (255, 0, 0), (self.x + car_width - 16, self.y + car_height - 12, 12, 8))
-        # Tekerlekler
-        pygame.draw.ellipse(screen, BLACK, (self.x + 2, self.y + 32, 15, 32))
-        pygame.draw.ellipse(screen, BLACK, (self.x + car_width - 17, self.y + 32, 15, 32))
-        pygame.draw.ellipse(screen, BLACK, (self.x + 2, self.y + car_height - 38, 15, 32))
-        pygame.draw.ellipse(screen, BLACK, (self.x + car_width - 17, self.y + car_height - 38, 15, 32))
-        # Jantlar
-        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + 6, self.y + 40, 7, 16))
-        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + car_width - 13, self.y + 40, 7, 16))
-        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + 6, self.y + car_height - 30, 7, 16))
-        pygame.draw.ellipse(screen, (180, 180, 180), (self.x + car_width - 13, self.y + car_height - 30, 7, 16))
+        screen.blit(car_img, (self.x, self.y))
 
     def move_left(self):
         if self.x > road_x:
@@ -131,8 +106,8 @@ class Cone:
 # Düşman araba sınıfı
 class EnemyCar:
     def __init__(self):
-        self.width = car_width
-        self.height = car_height
+        self.width = enemy_car_width
+        self.height = enemy_car_height
         self.x = random.randint(road_x + 10, road_x + road_width - self.width - 10)
         self.y = -self.height
         self.speed = random.randint(1, 2)  # Çok yavaş
