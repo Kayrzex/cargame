@@ -68,26 +68,35 @@ class Car:
     def __init__(self):
         self.x = screen_width // 2 - car_width // 2
         self.y = screen_height - car_height - 10
-        self.speed = 5
-        self.normal_speed = 5
-        self.slow_speed = 1
+        self.speed = 15  # Hız 15'e düşürüldü
+        self.normal_speed = 15
+        self.slow_speed = 2  # Fren yapınca bu hıza düşecek
+        self.turn_speed = 5  # Sağa/sola dönüş hızı azaltıldı
 
     def draw(self):
         screen.blit(car_img, (self.x, self.y))
 
     def move_left(self):
         if self.x > road_x:
-            self.x -= self.speed
+            self.x -= self.turn_speed  # Sabit hız
 
     def move_right(self):
         if self.x < road_x + road_width - car_width:
-            self.x += self.speed
+            self.x += self.turn_speed  # Sabit hız
+
+    def accelerate(self, accelerating):
+        if accelerating:
+            if self.speed < self.normal_speed:
+                self.speed += 1
+            if self.speed > self.normal_speed:
+                self.speed = self.normal_speed
 
     def brake(self, braking):
         if braking:
-            self.speed = self.slow_speed
-        else:
-            self.speed = self.normal_speed
+            if self.speed > 3:
+                self.speed -= 2  # Kademeli yavaşlama
+            else:
+                self.speed = 3  # Tamamen durmasın, minimum hızda gitsin
 
 # Duba (engel) sınıfı
 class Cone:
@@ -184,16 +193,25 @@ def game():
         bonus_pending = False
         falling = False
         fall_y = 0
+        brake_pressed = False
+        enemies_passed = 0
 
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_DOWN and not brake_pressed:
+                        car.brake(True)
+                        brake_pressed = True
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_DOWN:
+                        brake_pressed = False
 
             if not falling:
                 keys = pygame.key.get_pressed()
-                car.brake(keys[pygame.K_DOWN])
+                car.accelerate(keys[pygame.K_UP])
                 if keys[pygame.K_LEFT]:
                     car.move_left()
                 if keys[pygame.K_RIGHT]:
@@ -201,13 +219,13 @@ def game():
 
             # Yol çizgilerini hareket ettir
             for i in range(len(road_lines)):
-                road_lines[i] += 7
+                road_lines[i] += car.speed
                 if road_lines[i] > screen_height:
                     road_lines[i] = road_lines[i] - screen_height - 40
 
             # Yeni duba veya çukur oluşturma
             cone_timer += 1
-            if cone_timer > 50:  # Daha az sıklıkta engel
+            if cone_timer > 90:
                 if random.random() < 0.7:
                     cones.append(Cone())
                 else:
@@ -216,12 +234,19 @@ def game():
 
             # Yeni düşman araba oluşturma
             enemy_timer += 1
-            min_timer = max(40, 120 - score // 10 * 10)  # Bir tık daha sık
+            min_timer = max(40, 100 - score // 10 * 10)  # Daha az sıklıkta oluşturulsun
             if enemy_timer > min_timer:
-                spawn_chance = min(0.3 + score / 200, 0.85)  # Bir tık daha fazla olasılık
+                spawn_chance = min(0.5 + score / 300, 0.85)  # Oluşma olasılığı azaltıldı
                 if random.random() < spawn_chance:
                     enemy_cars.append(EnemyCar())
                 enemy_timer = 0
+
+            # Ara sıra can bonusu oluştur
+            bonus_timer += 1
+            if bonus_timer > 300:  # Her 5 saniyede bir dene
+                if random.random() < 0.3:  # %30 ihtimalle can bonusu oluştur
+                    bonuses.append(LifeBonus())
+                bonus_timer = 0
 
             # 15 duba geçilince can bonusu oluştur
             if cones_passed > 0 and cones_passed % 15 == 0 and not bonus_pending:
@@ -232,27 +257,29 @@ def game():
 
             # Dubaları hareket ettir
             for cone in cones[:]:
-                cone.move()
                 if cone.y > screen_height:
                     cones.remove(cone)
-                    score += 2  # Her duba için 2 puan
+                    score += 2
                     cones_passed += 1
 
             # Çukurları hareket ettir
             for hole in holes[:]:
-                hole.move()
                 if hole.y > screen_height:
                     holes.remove(hole)
 
             # Düşman arabaları hareket ettir
             for enemy in enemy_cars[:]:
-                enemy.move()
+                enemy.y += enemy.speed
                 if enemy.y + enemy.height < 0:
                     enemy_cars.remove(enemy)
+                    enemies_passed += 1
+                    if enemies_passed >= 5:
+                        lives += 1
+                        enemies_passed = 0
 
             # Bonusları hareket ettir
             for bonus in bonuses[:]:
-                bonus.move()
+                bonus.y += bonus.speed
                 if bonus.y > screen_height:
                     bonuses.remove(bonus)
 
@@ -387,8 +414,9 @@ def game():
             font = pygame.font.SysFont("Arial", 30)
             score_text = font.render(f"Skor: {score}", True, BLACK)
             screen.blit(score_text, (10, 10))
-            life_text = font.render(f"Can: {lives+1}", True, (0, 180, 0))
-            screen.blit(life_text, (10, 50))
+            # Can simgelerini çiz
+            for i in range(lives):
+                pygame.draw.circle(screen, (220, 0, 0), (30 + i*35, 60), 15)
 
             # Ekranı güncelle
             pygame.display.update()
