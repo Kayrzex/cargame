@@ -19,7 +19,7 @@ GREEN = (34, 139, 34)
 BROWN = (139, 69, 19)
 
 # Yol boyutları
-road_width = 500  # Yol genişletildi
+road_width = 650  # Yol daha da genişletildi
 road_x = screen_width // 2 - road_width // 2
 
 # Araba boyutları
@@ -234,17 +234,26 @@ def game():
 
             # Yeni düşman araba oluşturma
             enemy_timer += 1
-            min_timer = max(40, 100 - score // 10 * 10)  # Daha az sıklıkta oluşturulsun
+            min_timer = max(40, 100 - score // 10 * 10)
             if enemy_timer > min_timer:
-                spawn_chance = min(0.5 + score / 300, 0.85)  # Oluşma olasılığı azaltıldı
+                spawn_chance = min(0.5 + score / 300, 0.85)
                 if random.random() < spawn_chance:
-                    enemy_cars.append(EnemyCar())
+                    new_enemy = EnemyCar()
+                    overlap = False
+                    for enemy in enemy_cars:
+                        rect1 = pygame.Rect(new_enemy.x, new_enemy.y, new_enemy.width, new_enemy.height)
+                        rect2 = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
+                        if rect1.colliderect(rect2):
+                            overlap = True
+                            break
+                    if not overlap:
+                        enemy_cars.append(new_enemy)
                 enemy_timer = 0
 
             # Ara sıra can bonusu oluştur
             bonus_timer += 1
-            if bonus_timer > 300:  # Her 5 saniyede bir dene
-                if random.random() < 0.3:  # %30 ihtimalle can bonusu oluştur
+            if bonus_timer > 120:  # Daha sık bonus
+                if random.random() < 0.5:  # Çıkma olasılığı artırıldı
                     bonuses.append(LifeBonus())
                 bonus_timer = 0
 
@@ -292,6 +301,33 @@ def game():
             # Arabayı çiz
             if not falling:
                 car.draw()
+
+            # Bariyer çarpışma kontrolü
+            if not falling:
+                if car.x <= road_x or car.x + car_width >= road_x + road_width:
+                    if lives > 0:
+                        lives -= 1
+                        # car.x = screen_width // 2 - car_width // 2  # Artık ortalanmayacak
+                    else:
+                        font_over = pygame.font.SysFont("Arial", 80, bold=True)
+                        over_text = font_over.render("GAME OVER", True, RED)
+                        font_score = pygame.font.SysFont("Arial", 40, bold=True)
+                        score_text = font_score.render(f"Skorun: {score}", True, BLACK)
+                        font_restart = pygame.font.SysFont("Arial", 30)
+                        restart_text = font_restart.render("Yeniden başlatmak için bir tuşa bas!", True, BLACK)
+                        screen.blit(over_text, (screen_width//2 - over_text.get_width()//2, screen_height//2 - 120))
+                        screen.blit(score_text, (screen_width//2 - score_text.get_width()//2, screen_height//2 - 30))
+                        screen.blit(restart_text, (screen_width//2 - restart_text.get_width()//2, screen_height//2 + 40))
+                        pygame.display.update()
+                        waiting = True
+                        while waiting:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    return
+                                if event.type == pygame.KEYDOWN:
+                                    waiting = False
+                                    running = False
 
             # Dubaları çiz ve çarpışma kontrolü
             for cone in cones:
