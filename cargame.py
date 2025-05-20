@@ -68,9 +68,9 @@ class Car:
     def __init__(self):
         self.x = screen_width // 2 - car_width // 2
         self.y = screen_height - car_height - 10
-        self.speed = 15  # Hız 15'e düşürüldü
-        self.normal_speed = 15
-        self.slow_speed = 2  # Fren yapınca bu hıza düşecek
+        self.speed = 35  # Hız artırıldı
+        self.normal_speed = 30  # Hız artırıldı
+        self.slow_speed = 2
         self.turn_speed = 5  # Sağa/sola dönüş hızı azaltıldı
 
     def draw(self):
@@ -127,18 +127,11 @@ class EnemyCar:
         self.height = enemy_car_height
         self.x = random.randint(road_x + 10, road_x + road_width - self.width - 10)
         self.y = -self.height
-        self.speed = random.randint(1, 2)  # Çok yavaş
-
+        self.speed = random.randint(1, 2)
     def move(self):
-        self.y += self.speed  # Yukarıdan aşağıya
-
+        self.y += self.speed
     def draw(self):
-        pygame.draw.rect(screen, (200, 0, 0), (self.x, self.y + 20, self.width, self.height - 20), border_radius=12)
-        pygame.draw.rect(screen, (255, 200, 200), (self.x + 8, self.y + 25, self.width - 16, 35), border_radius=8)
-        pygame.draw.ellipse(screen, BLACK, (self.x + 5, self.y + self.height - 20, 15, 15))
-        pygame.draw.ellipse(screen, BLACK, (self.x + self.width - 20, self.y + self.height - 20, 15, 15))
-        pygame.draw.ellipse(screen, BLACK, (self.x + 5, self.y + 10, 15, 15))
-        pygame.draw.ellipse(screen, BLACK, (self.x + self.width - 20, self.y + 10, 15, 15))
+        pygame.draw.rect(screen, (0, 0, 255), (self.x, self.y, self.width, self.height))
 
 # Çukur engeli
 class Hole:
@@ -211,11 +204,13 @@ def game():
 
             if not falling:
                 keys = pygame.key.get_pressed()
-                car.accelerate(keys[pygame.K_UP])
-                if keys[pygame.K_LEFT]:
+                car.accelerate(keys[pygame.K_UP] or keys[pygame.K_w])
+                if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                     car.move_left()
-                if keys[pygame.K_RIGHT]:
+                if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
                     car.move_right()
+                if keys[pygame.K_DOWN] or keys[pygame.K_s] or keys[pygame.K_SPACE]:
+                    car.brake(True)
 
             # Yol çizgilerini hareket ettir
             for i in range(len(road_lines)):
@@ -307,27 +302,6 @@ def game():
                 if car.x <= road_x or car.x + car_width >= road_x + road_width:
                     if lives > 0:
                         lives -= 1
-                        # car.x = screen_width // 2 - car_width // 2  # Artık ortalanmayacak
-                    else:
-                        font_over = pygame.font.SysFont("Arial", 80, bold=True)
-                        over_text = font_over.render("GAME OVER", True, RED)
-                        font_score = pygame.font.SysFont("Arial", 40, bold=True)
-                        score_text = font_score.render(f"Skorun: {score}", True, BLACK)
-                        font_restart = pygame.font.SysFont("Arial", 30)
-                        restart_text = font_restart.render("Yeniden başlatmak için bir tuşa bas!", True, BLACK)
-                        screen.blit(over_text, (screen_width//2 - over_text.get_width()//2, screen_height//2 - 120))
-                        screen.blit(score_text, (screen_width//2 - score_text.get_width()//2, screen_height//2 - 30))
-                        screen.blit(restart_text, (screen_width//2 - restart_text.get_width()//2, screen_height//2 + 40))
-                        pygame.display.update()
-                        waiting = True
-                        while waiting:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    return
-                                if event.type == pygame.KEYDOWN:
-                                    waiting = False
-                                    running = False
 
             # Dubaları çiz ve çarpışma kontrolü
             for cone in cones:
@@ -453,6 +427,13 @@ def game():
             # Can simgelerini çiz
             for i in range(lives):
                 pygame.draw.circle(screen, (220, 0, 0), (30 + i*35, 60), 15)
+            # Hız ibresi ekle
+            speed_font = pygame.font.SysFont("Arial", 28, bold=True)
+            speed_box = pygame.Rect(screen_width - 150, screen_height - 80, 120, 60)
+            pygame.draw.rect(screen, (230,230,230), speed_box, border_radius=12)
+            pygame.draw.rect(screen, (100,100,100), speed_box, 2, border_radius=12)
+            speed_text = speed_font.render(f"Hız: {int(car.speed)}", True, (0, 100, 0))
+            screen.blit(speed_text, (screen_width - 140, screen_height - 60))
 
             # Ekranı güncelle
             pygame.display.update()
