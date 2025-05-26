@@ -259,7 +259,7 @@ async def main():
                 fuel_bonuses.append(FuelBonus())
 
             # Ara sıra NOS bonusu oluştur
-            if random.random() < 0.006 and len(nos_bonuses) < 2 and nos_count < max_nos:
+            if random.random() < 0.002 and len(nos_bonuses) < 2 and nos_count < max_nos:
                 nos_bonuses.append(NosBonus())
 
             # Düşman arabaları hareket ettir
@@ -430,9 +430,9 @@ async def main():
                 screen.blit(nos_text, (20, 80))
 
             # Benzin bitince oyun biter
-            if fuel <= 0:
+            if fuel <= 0 or lives <= 0:
                 font_over = pygame.font.SysFont("Arial", 80, bold=True)
-                over_text = font_over.render("BENZİN BİTTİ", True, RED)
+                over_text = font_over.render("GAME OVER", True, RED)
                 font_restart = pygame.font.SysFont("Arial", 30)
                 restart_text = font_restart.render("Yeniden başlatmak için bir tuşa bas!", True, BLACK)
                 screen.blit(over_text, (screen_width//2 - over_text.get_width()//2, screen_height//2 - 80))
