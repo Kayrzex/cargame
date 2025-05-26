@@ -268,6 +268,7 @@ async def main():
                 if enemy.y + enemy.height < 0:
                     enemy_cars.remove(enemy)
                     enemies_passed += 1
+                    score += 1  # Skor her geçen düşman için artsın
                     if enemies_passed >= 5:
                         lives += 1
                         enemies_passed = 0
