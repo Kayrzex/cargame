@@ -185,6 +185,15 @@ async def main():
         nos_timer = 0
         nos_bonuses = []
 
+        # Mobil butonlar için dikdörtgenler
+        button_size = 70
+        button_margin = 20
+        left_btn = pygame.Rect(60, screen_height - button_size - 30, button_size, button_size)
+        right_btn = pygame.Rect(160, screen_height - button_size - 30, button_size, button_size)
+        up_btn = pygame.Rect(screen_width - 2*button_size - 60, screen_height - button_size - 120, button_size, button_size)
+        down_btn = pygame.Rect(screen_width - button_size - 60, screen_height - button_size - 30, button_size, button_size)
+        nos_btn = pygame.Rect(screen_width//2 - button_size//2, screen_height - button_size - 30, button_size, button_size)
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -197,6 +206,20 @@ async def main():
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_DOWN:
                         brake_pressed = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = pygame.mouse.get_pos()
+                    if left_btn.collidepoint(mx, my):
+                        car.move_left()
+                    if right_btn.collidepoint(mx, my):
+                        car.move_right()
+                    if up_btn.collidepoint(mx, my):
+                        car.accelerate(True)
+                    if down_btn.collidepoint(mx, my):
+                        car.speed = 1
+                    if nos_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
+                        nos_active = True
+                        nos_timer = 120
+                        nos_count -= 1
 
             if not falling:
                 keys = pygame.key.get_pressed()
@@ -430,6 +453,22 @@ async def main():
                 font_nos = pygame.font.SysFont("Arial", 28, bold=True)
                 nos_text = font_nos.render("NOS!", True, (0,120,255))
                 screen.blit(nos_text, (20, 80))
+
+            # Mobil butonları çiz
+            alpha_surf = pygame.Surface((button_size, button_size), pygame.SRCALPHA)
+            alpha_surf.fill((0,0,0,80))
+            screen.blit(alpha_surf, left_btn.topleft)
+            screen.blit(alpha_surf, right_btn.topleft)
+            screen.blit(alpha_surf, up_btn.topleft)
+            screen.blit(alpha_surf, down_btn.topleft)
+            pygame.draw.rect(screen, (0,120,255,180), nos_btn, border_radius=18)
+            # Buton ikonları
+            font_btn = pygame.font.SysFont("Arial", 36, bold=True)
+            screen.blit(font_btn.render("<", True, WHITE), (left_btn.x+22, left_btn.y+14))
+            screen.blit(font_btn.render(">", True, WHITE), (right_btn.x+22, right_btn.y+14))
+            screen.blit(font_btn.render("^", True, WHITE), (up_btn.x+22, up_btn.y+14))
+            screen.blit(font_btn.render("v", True, WHITE), (down_btn.x+22, down_btn.y+14))
+            screen.blit(font_btn.render("N", True, WHITE), (nos_btn.x+22, nos_btn.y+14))
 
             # Benzin veya can bitince oyun biter ve tekrar başlatma ekranı gelir
             if fuel <= 0 or lives <= 0:
