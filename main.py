@@ -103,11 +103,65 @@ class EnemyCar:
         lane = random.randint(0, 3)  # 4 şerit: 0,1,2,3
         self.x = road_x + lane * lane_width + (lane_width - self.width) // 2
         self.y = -self.height
-        self.speed = random.randint(1, 2)
+        self.speed = random.randint(1, 2)  # Daha yavaş hız
+        self.target_x = self.x  # Hedef x konumu
+        self.moving = False  # Şerit değiştiriyor mu
+        self.crashed = False  # Kaza yapmış mı
+        self.crash_timer = 0  # Kaza süresi
     def move(self):
-        self.y += self.speed
+        if not self.crashed:
+            self.y += self.speed
+            # Animasyonlu şerit değişimi
+            if self.moving:
+                if abs(self.x - self.target_x) > 2:
+                    self.x += 3 if self.target_x > self.x else -3
+                else:
+                    self.x = self.target_x
+                    self.moving = False
+        else:
+            # Kazalı araç sabit kalır
+            self.crash_timer += 1
     def draw(self):
-        screen.blit(enemy_car_img, (self.x, self.y))
+        if self.crashed:
+            # Kazalı araç yanıp söner
+            if self.crash_timer % 20 < 10:
+                screen.blit(enemy_car_img, (self.x, self.y))
+        else:
+            screen.blit(enemy_car_img, (self.x, self.y))
+
+# Lastik izi sınıfı
+class TireTrack:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.life = 180  # 3 saniye yaşam süresi
+    def update(self):
+        self.y += 3  # Yolun hareketiyle birlikte hareket et
+        self.life -= 1
+    def draw(self):
+        alpha = max(0, min(255, self.life))
+        if alpha > 0:
+            pygame.draw.circle(screen, (40, 40, 40, alpha), (int(self.x), int(self.y)), 3)
+            pygame.draw.circle(screen, (40, 40, 40, alpha), (int(self.x + car_width), int(self.y)), 3)
+
+# Duman parçacığı sınıfı
+class SmokeParticle:
+    def __init__(self, x, y):
+        self.x = x + random.randint(-10, 10)
+        self.y = y
+        self.life = 60
+        self.size = random.randint(3, 8)
+        self.vx = random.uniform(-1, 1)
+        self.vy = random.uniform(1, 3)
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.life -= 1
+        self.size *= 0.98
+    def draw(self):
+        alpha = max(0, min(255, self.life * 4))
+        if alpha > 0 and self.size > 1:
+            pygame.draw.circle(screen, (100, 100, 100, alpha), (int(self.x), int(self.y)), int(self.size))
 
 # Can bonusu sınıfı
 class LifeBonus:
@@ -190,9 +244,12 @@ async def main():
         button_margin = 20
         left_btn = pygame.Rect(60, screen_height - button_size - 30, button_size, button_size)
         right_btn = pygame.Rect(160, screen_height - button_size - 30, button_size, button_size)
-        up_btn = pygame.Rect(screen_width - 2*button_size - 60, screen_height - button_size - 120, button_size, button_size)
+        up_btn = pygame.Rect(screen_width - button_size - 60, screen_height - button_size - 120, button_size, button_size)  # Yukarı NOS butonu
         down_btn = pygame.Rect(screen_width - button_size - 60, screen_height - button_size - 30, button_size, button_size)
-        nos_btn = pygame.Rect(screen_width//2 - button_size//2, screen_height - button_size - 30, button_size, button_size)
+        tire_tracks = []  # Lastik izleri
+        smoke_particles = []  # Duman parçacıkları
+        last_car_x = car.x  # Önceki araba pozisyonu
+        lane_change_timer = 0  # Şerit değişimi için zamanlayıcı
 
         while running:
             for event in pygame.event.get():
@@ -212,22 +269,17 @@ async def main():
                         car.move_left()
                     if right_btn.collidepoint(mx, my):
                         car.move_right()
-                    if up_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
+                    if up_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:  # Yukarı NOS butonu
                         nos_active = True
                         nos_timer = 120
                         nos_count -= 1
                     if down_btn.collidepoint(mx, my):
                         car.speed = 1
-                    if nos_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
-                        nos_active = True
-                        nos_timer = 120
-                        nos_count -= 1
 
             if not falling:
                 keys = pygame.key.get_pressed()
-                # Yukarı tuşu ve mobil yukarı butonu artık gaz vermiyor, sadece NOS için kullanılıyor
-                # Space ve yukarı ok ile NOS aktif (basılı tutunca)
-                if (keys[pygame.K_SPACE] or keys[pygame.K_UP]) and nos_count > 0 and not nos_active:
+                # NOS sadece yukarı tuşu ile aktif (Space kaldırıldı)
+                if keys[pygame.K_UP] and nos_count > 0 and not nos_active:
                     nos_active = True
                     nos_timer = 120
                     nos_count -= 1
@@ -247,35 +299,41 @@ async def main():
                 if keys[pygame.K_RIGHT] or keys[pygame.K_d] or (pygame.mouse.get_pressed()[0] and right_btn.collidepoint(*pygame.mouse.get_pos())):
                     car.move_right()
 
-            # Mobilde yukarı buton NOS için
-            if pygame.mouse.get_pressed()[0]:
-                mx, my = pygame.mouse.get_pos()
-                if up_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
-                    nos_active = True
-                    nos_timer = 120
-                    nos_count -= 1
+                # Şerit değişimi lastik izi bırakma
+                if abs(car.x - last_car_x) > 3:  # Şerit değiştirirse
+                    tire_tracks.append(TireTrack(car.x, car.y + car_height))
+                    # Duman efekti
+                    for _ in range(3):
+                        smoke_particles.append(SmokeParticle(car.x + car_width//2, car.y + car_height))
+                last_car_x = car.x
 
             # Yol çizgilerini hareket ettir
             for i in range(len(road_lines)):
                 road_lines[i] += car.speed
                 if road_lines[i] > screen_height:
-                    road_lines[i] = road_lines[i] - screen_height - 40
-
-            # Yeni düşman araba oluşturma
+                    road_lines[i] = road_lines[i] - screen_height - 40            # Yeni düşman araba oluşturma
             enemy_timer += 1
             min_timer = max(30, 80 - score // 10 * 10)  # Daha sık düşman
-            max_enemies = 7  # Aynı anda ekranda daha fazla düşman
+            max_enemies = 5  # Daha az araç ekranda
             if enemy_timer > min_timer and len(enemy_cars) < max_enemies:
                 spawn_chance = min(0.7 + score / 200, 0.95)
                 if random.random() < spawn_chance:
                     new_enemy = EnemyCar()
                     overlap = False
+                    lane_width = road_width // 4
+                    new_lane = (new_enemy.x - road_x) // lane_width
+
                     for enemy in enemy_cars:
-                        rect1 = pygame.Rect(new_enemy.x, new_enemy.y, new_enemy.width, new_enemy.height)
-                        rect2 = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
-                        if rect1.colliderect(rect2):
+                        existing_lane = (enemy.x - road_x) // lane_width
+                        # Aynı şeritte başka araç varsa minimum 250 piksel mesafe olmalı
+                        if existing_lane == new_lane and abs(new_enemy.y - enemy.y) < 250:
                             overlap = True
                             break
+                        # Farklı şeritte olsa bile çok yakınsa çakışma riski var
+                        if abs(new_enemy.x - enemy.x) < 100 and abs(new_enemy.y - enemy.y) < 150:
+                            overlap = True
+                            break
+
                     if not overlap:
                         enemy_cars.append(new_enemy)
                 enemy_timer = 0
@@ -293,31 +351,56 @@ async def main():
 
             # Ara sıra NOS bonusu oluştur
             if random.random() < 0.002 and len(nos_bonuses) < 2 and nos_count < max_nos:
-                nos_bonuses.append(NosBonus())
-
-            # Düşman arabaları hareket ettir
+                nos_bonuses.append(NosBonus())            # Düşman arabaları hareket ettir
             for enemy in enemy_cars[:]:
-                enemy.y += enemy.speed
-                # Düşman arabalarına ani hareketler ekle
-                # Ani şerit değişimi
-                if random.random() < 0.01:
-                    lane_width = road_width // 4
-                    current_lane = (enemy.x - road_x) // lane_width
-                    move_dir = random.choice([-1, 1])
-                    new_lane = max(0, min(3, current_lane + move_dir))
-                    enemy.x = road_x + new_lane * lane_width + (lane_width - enemy.width) // 2
-                # Ani fren
-                if random.random() < 0.01:
-                    enemy.speed = max(1, enemy.speed - 1)
-                elif random.random() < 0.01:
-                    enemy.speed = min(4, enemy.speed + 1)
+                enemy.move()  # move() fonksiyonu artık animasyonlu şerit değişimi içeriyor
                 if enemy.y > screen_height:
                     enemy_cars.remove(enemy)
                     enemies_passed += 1
-                    score += 1  # Skor her geçen düşman için artsın
+                    score += 1
                     if enemies_passed >= 5:
                         lives += 1
-                        enemies_passed = 0
+                        enemies_passed = 0            # Düşman arabalarına ani hareketler ekle (tek seferde tek araç)
+            lane_change_timer += 1
+            if lane_change_timer > 60:  # Her saniyede bir kontrol et
+                moving_cars = [enemy for enemy in enemy_cars if enemy.moving]
+                if len(moving_cars) == 0:  # Hiç hareket eden araç yoksa
+                    available_cars = [enemy for enemy in enemy_cars if not enemy.moving]
+                    if available_cars:
+                        selected_enemy = random.choice(available_cars)
+                        if random.random() < 0.3:  # %30 şans ile şerit değişimi
+                            lane_width = road_width // 4
+                            current_lane = (selected_enemy.x - road_x) // lane_width
+                            move_dir = random.choice([-1, 1])
+                            new_lane = max(0, min(3, current_lane + move_dir))
+                            new_target_x = road_x + new_lane * lane_width + (lane_width - selected_enemy.width) // 2
+
+                            # Hedef şeritte başka araç var mı kontrol et (daha sıkı kontrol)
+                            lane_blocked = False
+                            for other_enemy in enemy_cars:
+                                if other_enemy != selected_enemy:
+                                    other_lane = (other_enemy.x - road_x) // lane_width
+                                    # Hedef şeritte araç varsa ve 300 piksel yakınındaysa blokla
+                                    if other_lane == new_lane and abs(other_enemy.y - selected_enemy.y) < 300:
+                                        lane_blocked = True
+                                        break
+                                    # Şerit değişimi sırasında çapraz çakışma kontrolü
+                                    if abs(other_enemy.x - new_target_x) < 100 and abs(other_enemy.y - selected_enemy.y) < 200:
+                                        lane_blocked = True
+                                        break
+
+                            if not lane_blocked:
+                                selected_enemy.target_x = new_target_x
+                                selected_enemy.moving = True
+
+                # Ani fren (daha az sıklıkta)
+                for enemy in enemy_cars:
+                    if random.random() < 0.002:
+                        enemy.speed = max(0.5, enemy.speed - 0.3)
+                    elif random.random() < 0.002:
+                        enemy.speed = min(2.5, enemy.speed + 0.3)
+
+                lane_change_timer = 0
 
             # Bonusları hareket ettir
             for bonus in bonuses[:]:
@@ -391,7 +474,7 @@ async def main():
                 if not falling and car_rect.colliderect(enemy_rect):
                     if lives > 0:
                         lives -= 1
-                        enemy_cars.remove(enemy)
+                        enemy.crashed = True
                         continue
                     font_over = pygame.font.SysFont("Arial", 80, bold=True)
                     over_text = font_over.render("GAME OVER", True, RED)
@@ -445,6 +528,22 @@ async def main():
                         nos_count += 1
                     nos_bonuses.remove(nbonus)
 
+            # Lastik izlerini güncelle ve çiz
+            for track in tire_tracks[:]:
+                track.update()
+                if track.life <= 0:
+                    tire_tracks.remove(track)
+                else:
+                    track.draw()
+
+            # Duman parçacıklarını güncelle ve çiz
+            for particle in smoke_particles[:]:
+                particle.update()
+                if particle.life <= 0:
+                    smoke_particles.remove(particle)
+                else:
+                    particle.draw()
+
             # Skoru ve canı yazdır
             font = pygame.font.SysFont("Arial", 30)
             score_text = font.render(f"Skor: {score}", True, BLACK)
@@ -473,21 +572,19 @@ async def main():
             for i in range(nos_count):
                 pygame.draw.rect(screen, (0,120,255), (20, 100 + i*30, 22, 22), border_radius=5)
 
-            # Mobil butonları çiz (yukarı butonu mavi, NOS simgesi yok)
+            # Mobil butonları çiz (sol, sağ, yukarı NOS, aşağı fren)
             alpha_surf = pygame.Surface((button_size, button_size), pygame.SRCALPHA)
             alpha_surf.fill((0,0,0,80))
             screen.blit(alpha_surf, left_btn.topleft)
             screen.blit(alpha_surf, right_btn.topleft)
-            screen.blit(alpha_surf, up_btn.topleft)
             screen.blit(alpha_surf, down_btn.topleft)
-            pygame.draw.rect(screen, (0,120,255,180), up_btn, border_radius=18)  # Yukarı buton mavi
-            pygame.draw.rect(screen, (0,120,255,180), nos_btn, border_radius=18)
+            # Yukarı NOS butonu mavi
+            pygame.draw.rect(screen, (0,120,255,180), up_btn, border_radius=18)
             font_btn = pygame.font.SysFont("Arial", 36, bold=True)
             screen.blit(font_btn.render("<", True, WHITE), (left_btn.x+22, left_btn.y+14))
             screen.blit(font_btn.render(">", True, WHITE), (right_btn.x+22, right_btn.y+14))
-            screen.blit(font_btn.render("N", True, WHITE), (up_btn.x+22, up_btn.y+14))
+            screen.blit(font_btn.render("N", True, WHITE), (up_btn.x+22, up_btn.y+14))  # NOS
             screen.blit(font_btn.render("v", True, WHITE), (down_btn.x+22, down_btn.y+14))
-            screen.blit(font_btn.render("N", True, WHITE), (nos_btn.x+22, nos_btn.y+14))
 
             # Benzin veya can bitince oyun biter ve tekrar başlatma ekranı gelir
             if fuel <= 0 or lives <= 0:
