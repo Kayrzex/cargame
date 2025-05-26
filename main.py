@@ -430,7 +430,7 @@ async def main():
                 nos_text = font_nos.render("NOS!", True, (0,120,255))
                 screen.blit(nos_text, (20, 80))
 
-            # Benzin bitince oyun biter
+            # Benzin veya can bitince oyun biter ve tekrar başlatma ekranı gelir
             if fuel <= 0 or lives <= 0:
                 font_over = pygame.font.SysFont("Arial", 80, bold=True)
                 over_text = font_over.render("GAME OVER", True, RED)
@@ -447,7 +447,6 @@ async def main():
                             return
                         if event.type == pygame.KEYDOWN:
                             waiting = False
-                            running = False
                 break
 
             # Ekranı güncelle
