@@ -265,7 +265,7 @@ async def main():
             # Düşman arabaları hareket ettir
             for enemy in enemy_cars[:]:
                 enemy.y += enemy.speed
-                if enemy.y + enemy.height < 0:
+                if enemy.y > screen_height:
                     enemy_cars.remove(enemy)
                     enemies_passed += 1
                     score += 1  # Skor her geçen düşman için artsın
