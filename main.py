@@ -335,6 +335,7 @@ async def main():
                                 if event.type == pygame.KEYDOWN:
                                     waiting = False
                                     running = False
+                            await asyncio.sleep(0)
 
             # Düşman arabaları çiz ve çarpışma kontrolü
             for enemy in enemy_cars:
@@ -365,7 +366,7 @@ async def main():
                             if event.type == pygame.KEYDOWN:
                                 waiting = False
                                 running = False
-                    await asyncio.sleep(0)
+                        await asyncio.sleep(0)
                     break
 
             # Bonusları çiz ve alma kontrolü
@@ -447,6 +448,7 @@ async def main():
                             return
                         if event.type == pygame.KEYDOWN:
                             waiting = False
+                    await asyncio.sleep(0)
                 break
 
             # Ekranı güncelle
