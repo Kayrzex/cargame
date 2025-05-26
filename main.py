@@ -212,8 +212,10 @@ async def main():
                         car.move_left()
                     if right_btn.collidepoint(mx, my):
                         car.move_right()
-                    if up_btn.collidepoint(mx, my):
-                        car.accelerate(True)
+                    if up_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
+                        nos_active = True
+                        nos_timer = 120
+                        nos_count -= 1
                     if down_btn.collidepoint(mx, my):
                         car.speed = 1
                     if nos_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
@@ -223,26 +225,35 @@ async def main():
 
             if not falling:
                 keys = pygame.key.get_pressed()
-                car.accelerate(keys[pygame.K_UP] or keys[pygame.K_w])
-                if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-                    car.move_left()
-                if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                    car.move_right()
-                # Space artık fren değil, NOS
-                if keys[pygame.K_SPACE] and nos_count > 0 and not nos_active:
+                # Yukarı tuşu ve mobil yukarı butonu artık gaz vermiyor, sadece NOS için kullanılıyor
+                # Space ve yukarı ok ile NOS aktif (basılı tutunca)
+                if (keys[pygame.K_SPACE] or keys[pygame.K_UP]) and nos_count > 0 and not nos_active:
                     nos_active = True
-                    nos_timer = 120  # 2 saniye turbo
+                    nos_timer = 120
                     nos_count -= 1
                 if nos_active:
-                    car.speed = car.normal_speed + 20  # Turbo hız
+                    car.speed = car.normal_speed + 20
                     nos_timer -= 1
                     if nos_timer <= 0:
                         nos_active = False
                         car.speed = car.normal_speed
                 elif keys[pygame.K_DOWN]:
-                    car.speed = 1  # Aşağı ok ile neredeyse tamamen dur
+                    car.speed = 1
                 else:
                     car.speed = car.normal_speed
+
+                if keys[pygame.K_LEFT] or keys[pygame.K_a] or (pygame.mouse.get_pressed()[0] and left_btn.collidepoint(*pygame.mouse.get_pos())):
+                    car.move_left()
+                if keys[pygame.K_RIGHT] or keys[pygame.K_d] or (pygame.mouse.get_pressed()[0] and right_btn.collidepoint(*pygame.mouse.get_pos())):
+                    car.move_right()
+
+            # Mobilde yukarı buton NOS için
+            if pygame.mouse.get_pressed()[0]:
+                mx, my = pygame.mouse.get_pos()
+                if up_btn.collidepoint(mx, my) and nos_count > 0 and not nos_active:
+                    nos_active = True
+                    nos_timer = 120
+                    nos_count -= 1
 
             # Yol çizgilerini hareket ettir
             for i in range(len(road_lines)):
@@ -262,7 +273,6 @@ async def main():
                     for enemy in enemy_cars:
                         rect1 = pygame.Rect(new_enemy.x, new_enemy.y, new_enemy.width, new_enemy.height)
                         rect2 = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
-                        # Dikeyde çakışma olmasın diye daha sıkı kontrol
                         if rect1.colliderect(rect2):
                             overlap = True
                             break
@@ -288,6 +298,19 @@ async def main():
             # Düşman arabaları hareket ettir
             for enemy in enemy_cars[:]:
                 enemy.y += enemy.speed
+                # Düşman arabalarına ani hareketler ekle
+                # Ani şerit değişimi
+                if random.random() < 0.01:
+                    lane_width = road_width // 4
+                    current_lane = (enemy.x - road_x) // lane_width
+                    move_dir = random.choice([-1, 1])
+                    new_lane = max(0, min(3, current_lane + move_dir))
+                    enemy.x = road_x + new_lane * lane_width + (lane_width - enemy.width) // 2
+                # Ani fren
+                if random.random() < 0.01:
+                    enemy.speed = max(1, enemy.speed - 1)
+                elif random.random() < 0.01:
+                    enemy.speed = min(4, enemy.speed + 1)
                 if enemy.y > screen_height:
                     enemy_cars.remove(enemy)
                     enemies_passed += 1
@@ -449,24 +472,20 @@ async def main():
             # NOS göstergesi (sol üstte, mavi kutular)
             for i in range(nos_count):
                 pygame.draw.rect(screen, (0,120,255), (20, 100 + i*30, 22, 22), border_radius=5)
-            if nos_active:
-                font_nos = pygame.font.SysFont("Arial", 28, bold=True)
-                nos_text = font_nos.render("NOS!", True, (0,120,255))
-                screen.blit(nos_text, (20, 80))
 
-            # Mobil butonları çiz
+            # Mobil butonları çiz (yukarı butonu mavi, NOS simgesi yok)
             alpha_surf = pygame.Surface((button_size, button_size), pygame.SRCALPHA)
             alpha_surf.fill((0,0,0,80))
             screen.blit(alpha_surf, left_btn.topleft)
             screen.blit(alpha_surf, right_btn.topleft)
             screen.blit(alpha_surf, up_btn.topleft)
             screen.blit(alpha_surf, down_btn.topleft)
+            pygame.draw.rect(screen, (0,120,255,180), up_btn, border_radius=18)  # Yukarı buton mavi
             pygame.draw.rect(screen, (0,120,255,180), nos_btn, border_radius=18)
-            # Buton ikonları
             font_btn = pygame.font.SysFont("Arial", 36, bold=True)
             screen.blit(font_btn.render("<", True, WHITE), (left_btn.x+22, left_btn.y+14))
             screen.blit(font_btn.render(">", True, WHITE), (right_btn.x+22, right_btn.y+14))
-            screen.blit(font_btn.render("^", True, WHITE), (up_btn.x+22, up_btn.y+14))
+            screen.blit(font_btn.render("N", True, WHITE), (up_btn.x+22, up_btn.y+14))
             screen.blit(font_btn.render("v", True, WHITE), (down_btn.x+22, down_btn.y+14))
             screen.blit(font_btn.render("N", True, WHITE), (nos_btn.x+22, nos_btn.y+14))
 
